@@ -62,6 +62,8 @@
   <ItemGroup>
     <Compile Include="Assets\Scripts\Block.cs" />
     <Compile Include="Assets\Scripts\GameManager.cs" />
+    <Compile Include="Assets\Scripts\IBlock.cs" />
+    <Compile Include="Assets\Scripts\LBlock.cs" />
     <Reference Include="Unity.TextMeshPro.Editor">
       <HintPath>C:/Users/Sophriel/OneDrive - 홍익대학교/홍익대학교/코딩/까르르 신나는 범주찡의 모바일 프로그래밍~/B577027 이재형 Tetris/Library/ScriptAssemblies/Unity.TextMeshPro.Editor.dll</HintPath>
     </Reference>
