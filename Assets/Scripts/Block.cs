@@ -7,81 +7,38 @@ public class Block : MonoBehaviour
     public static float Cube_Size = 1.2f;
     public static float Max_Cube_Count = 4;
 
-    public bool IsTargetBlock;
+    //  떨어지는 간격
+    public static float Interval = 1.0f;
 
     //  그리드 포지션
     private Vector2 GridPosition;
+
     [SerializeField]
     private Collider[] childCubes;
 
-    //  떨어지는 간격
-    private float interval = 1.0f;
+    private Coroutine fallCoroutine;
 
     private void Start()
     {
-        IsTargetBlock = false;
         childCubes = GetComponentsInChildren<Collider>();
-
-        GridPosition.Set(4, 20); //  next block 아래로 수정
-
-        StartBlock();
     }
 
-    private void StartBlock()
+    //  블록의 조작을 시작합니다.
+    public void StartBlock()
     {
-        IsTargetBlock = true;
-
-        GridPosition.Set(4, 20); //  next block 아래로 수정
+        GridPosition.Set(4, 20);
         SetPositionByGrid();
-        StartCoroutine(Fall());
+
+        fallCoroutine = StartCoroutine(Fall());
     }
 
-    private void Update()
-    {
-        if (IsTargetBlock)
-            GetInput();
-    }
-
-    private void GetInput()
-    {
-        //  좌우 방향키
-        if (Input.GetKeyDown(KeyCode.LeftArrow))
-        {
-            if (!CastByBlocks(Vector2.left, 1.0f))
-                MoveLeft();
-        }
-        else if (Input.GetKeyDown(KeyCode.RightArrow))
-        {
-            if (!CastByBlocks(Vector2.right, 1.0f))
-                MoveRight();
-        }
-
-        //  위 방향키
-        if (Input.GetKeyDown(KeyCode.UpArrow))
-        {
-            transform.Rotate(Vector3.forward * 90.0f);
-            IsValidRotation();
-        }
-
-        //  아래 방향키
-        if (Input.GetKeyDown(KeyCode.DownArrow))
-        {
-            interval = 0.02f;
-            MoveDown();
-        }
-        if (Input.GetKeyUp(KeyCode.DownArrow))
-            interval = 1.0f;
-
-        //  스페이스바
-        if (Input.GetKeyDown(KeyCode.Space))
-            ImmediateFall();
-    }
-
+    //  이동한 GridPosition을 transform.position에 적용합니다.
     private void SetPositionByGrid()
     {
         transform.position = new Vector3(Cube_Size * GridPosition.x, Cube_Size * GridPosition.y);
     }
 
+    //  각 블록마다 direction 방향으로 Raycast합니다.
     private bool CastByBlocks(Vector2 direction, float length)
     {
         foreach (Collider i in childCubes)
@@ -89,53 +46,67 @@ public class Block : MonoBehaviour
             Ray ray = new Ray(i.transform.position, direction);
             int layermask = 1 << LayerMask.NameToLayer("Cube");
 
-            if (Physics.Raycast(ray, length, layermask))
+            if (Physics.Raycast(ray, length * Cube_Size, layermask))
                 return true;
         }
 
         return false;
     }
 
-    private void MoveLeft()
+    //  좌측으로 이동합니다.
+    public void MoveLeft()
     {
-        GridPosition += Vector2.left;
-        SetPositionByGrid();
+        if (!CastByBlocks(Vector2.left, 1.0f))
+        {
+            GridPosition += Vector2.left;
+            SetPositionByGrid();
+        }
     }
 
-    private void MoveRight()
+    //  우측으로 이동합니다.
+    public void MoveRight()
     {
-        GridPosition += Vector2.right;
-        SetPositionByGrid();
+        if (!CastByBlocks(Vector2.right, 1.0f))
+        {
+            GridPosition += Vector2.right;
+            SetPositionByGrid();
+        }
     }
 
+    //  유효한 위치인지 (벽 밖 혹은 다른 큐브와 겹치는지) 확인합니다.
     private bool IsValidPos()
     {
+        //  각 블록 back에서 forward로 Raycast
         foreach (Collider i in childCubes)
         {
-            if (i.transform.position.x > Cube_Size * 9.0f + 0.1f || i.transform.position.x < -0.1f)
+            Ray ray = new Ray(i.transform.position + (Vector3.back * Cube_Size), Vector3.forward);
+            int layermask = 1 << LayerMask.NameToLayer("Cube");
+
+            if (Physics.Raycast(ray, Cube_Size, layermask))
                 return false;
         }
 
         return true;
     }
 
+    //  땅과 겹치는지 확인합니다.
     private bool IsUnderGround()
     {
+        if (transform.position.y < 0.1f)
+            return true;
+
         foreach (Collider i in childCubes)
         {
-            if (i.transform.position.y < 0.0f)
-            return true;
+            if (i.transform.position.y < -0.1f)
+                return true;
         }
 
         return false;
     }
 
+    //  유효한 회전인지 확인합니다.
     private void IsValidRotation()
     {
-        //  유효한 상태이면 유지
-        if (IsValidPos())
-            return;
-
         //  땅에 닿으면 회전불가
         if (IsUnderGround())
         {
@@ -143,7 +114,11 @@ public class Block : MonoBehaviour
             return;
         }
 
-        //  부딪히면 움직임
+        //  유효한 상태이면 유지
+        if (IsValidPos())
+            return;
+
+        //  부딪히면 보정
         if (!CastByBlocks(Vector2.right, 1.0f))
         {
             MoveRight();
@@ -161,41 +136,65 @@ public class Block : MonoBehaviour
         transform.Rotate(Vector3.forward * -90.0f);
     }
 
-    private void MoveDown()
+    //  90도만큼 좌회전합니다.
+    public virtual void RotateLeft()
     {
-        GridPosition += Vector2.down;
-        SetPositionByGrid();
+        transform.Rotate(Vector3.forward * 90.0f);
+        IsValidRotation();
     }
 
+    //  아래로 이동합니다.
+    public bool MoveDown()
+    {
+        if (!CastByBlocks(Vector2.down, 1.0f))
+        {
+            GridPosition += Vector2.down;
+            SetPositionByGrid();
+            return true;
+        }
+
+        return false;
+    }
+
+    //  interval초 마다 낙하하는 코루틴입니다.
     private IEnumerator Fall()
     {
-        while (true)
-        {
-            if (CastByBlocks(Vector2.down, 1.0f))
-            {
-                //  여기서 필드로 고착
-                yield break;
-            }
+        yield return new WaitForFixedUpdate();
 
-            MoveDown();
-            yield return new WaitForSeconds(interval);
-        }
-    }
-
-    private void ImmediateFall()
-    {
-        while (!CastByBlocks(Vector2.down, 1.0f))
-            MoveDown();
+        while (MoveDown())
+            yield return new WaitForSeconds(Interval);
 
         StopBlock();
     }
 
+    //  최대한 아래로 떨어집니다.
+    public void ImmediateFall()
+    {
+        while (MoveDown()) ;
+
+        StopBlock();
+    }
+
+    //  블록의 조작을 멈춥니다.
     private void StopBlock()
     {
-        IsTargetBlock = false;
-        foreach (Collider i in childCubes)
-            i.gameObject.layer = LayerMask.NameToLayer("Cube");
+        if (fallCoroutine != null)
+        {
+            StopCoroutine(fallCoroutine);
 
-        StopCoroutine(Fall());
+            foreach (Collider i in childCubes)
+                i.gameObject.layer = LayerMask.NameToLayer("Cube");
+
+            StartCoroutine(GameManager.Instance.LineCheckRoutine());
+        }
+    }
+
+    public void HoldBlock()
+    {
+        if (fallCoroutine != null)
+        {
+            StopCoroutine(fallCoroutine);
+
+        }
     }
 }
