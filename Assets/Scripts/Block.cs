@@ -10,6 +10,8 @@ public class Block : MonoBehaviour
     //  떨어지는 간격
     public static float Interval = 1.0f;
 
+    #region 멤버 변수
+
     //  그리드 포지션
     private Vector2 GridPosition;
 
@@ -17,6 +19,10 @@ public class Block : MonoBehaviour
     private Collider[] childCubes;
 
     private Coroutine fallCoroutine;
+
+    #endregion
+
+    #region 이니셜라이징
 
     private void Start()
     {
@@ -38,6 +44,10 @@ public class Block : MonoBehaviour
         transform.position = new Vector3(Cube_Size * GridPosition.x, Cube_Size * GridPosition.y);
     }
 
+    #endregion
+
+    #region 유효성 확인 함수
+
     //  각 블록마다 direction 방향으로 Raycast합니다.
     private bool CastByBlocks(Vector2 direction, float length)
     {
@@ -53,25 +63,6 @@ public class Block : MonoBehaviour
         return false;
     }
 
-    //  좌측으로 이동합니다.
-    public void MoveLeft()
-    {
-        if (!CastByBlocks(Vector2.left, 1.0f))
-        {
-            GridPosition += Vector2.left;
-            SetPositionByGrid();
-        }
-    }
-
-    //  우측으로 이동합니다.
-    public void MoveRight()
-    {
-        if (!CastByBlocks(Vector2.right, 1.0f))
-        {
-            GridPosition += Vector2.right;
-            SetPositionByGrid();
-        }
-    }
 
     //  유효한 위치인지 (벽 밖 혹은 다른 큐브와 겹치는지) 확인합니다.
     private bool IsValidPos()
@@ -136,11 +127,28 @@ public class Block : MonoBehaviour
         transform.Rotate(Vector3.forward * -90.0f);
     }
 
-    //  90도만큼 좌회전합니다.
-    public virtual void RotateLeft()
+    #endregion
+
+    #region 이동, 회전
+
+    //  좌측으로 이동합니다.
+    public void MoveLeft()
     {
-        transform.Rotate(Vector3.forward * 90.0f);
-        IsValidRotation();
+        if (!CastByBlocks(Vector2.left, 1.0f))
+        {
+            GridPosition += Vector2.left;
+            SetPositionByGrid();
+        }
+    }
+
+    //  우측으로 이동합니다.
+    public void MoveRight()
+    {
+        if (!CastByBlocks(Vector2.right, 1.0f))
+        {
+            GridPosition += Vector2.right;
+            SetPositionByGrid();
+        }
     }
 
     //  아래로 이동합니다.
@@ -155,6 +163,18 @@ public class Block : MonoBehaviour
 
         return false;
     }
+
+    //  90도만큼 좌회전합니다.
+    public virtual void RotateLeft()
+    {
+        transform.Rotate(Vector3.forward * 90.0f);
+        IsValidRotation();
+    }
+    //  네모 블럭은 회전하지 않도록 override
+
+    #endregion
+
+    #region 낙하, 정지, 홀드
 
     //  interval초 마다 낙하하는 코루틴입니다.
     private IEnumerator Fall()
@@ -192,9 +212,8 @@ public class Block : MonoBehaviour
     public void HoldBlock()
     {
         if (fallCoroutine != null)
-        {
             StopCoroutine(fallCoroutine);
-
-        }
     }
+
+    #endregion
 }

@@ -97,6 +97,7 @@ public class GameManager : MonoBehaviour
 
     #endregion
 
+    #region 키 입력
 
     private void Update()
     {
@@ -134,6 +135,10 @@ public class GameManager : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.C))
             HoldBlock();
     }
+
+    #endregion
+
+    #region 필드 루틴
 
     //  Block에 의해 호출되는 필드체크 코루틴입니다.
     public IEnumerator LineCheckRoutine()
@@ -230,6 +235,10 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    #endregion
+
+    #region UI
+
     //  콤보, 점수, 레벨을 갱신합니다.
     private void UpdateNums(int count)
     {
@@ -256,4 +265,6 @@ public class GameManager : MonoBehaviour
     {
         SceneManager.LoadScene("Ingame");
     }
+
+    #endregion
 }
